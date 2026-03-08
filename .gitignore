@@ -1,0 +1,44 @@
+# Rust build artifacts
+/target/
+**/*.rs.bk
+
+# Cargo lock (keep for binaries, remove for libraries)
+# Cargo.lock  # Uncomment if this is a library crate
+
+# Dependencies (managed by Cargo)
+# vendor/  # Uncomment if using cargo vendor
+
+# IDE / Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# AWS / SAM / CDK
+.aws-sam/
+cdk.out/
+samconfig.toml
+*.cfn.json
+
+# Lambda build output
+bootstrap
+bootstrap.zip
+lambda.zip
+*.zip
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# Logs
+*.log
+logs/
+
+# OS
+Thumbs.db
