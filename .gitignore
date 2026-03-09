@@ -19,6 +19,7 @@
 # AWS / SAM / CDK
 .aws-sam/
 cdk.out/
+node_modules/
 samconfig.toml
 *.cfn.json
 
