@@ -1,0 +1,138 @@
+openapi: 3.0.3
+info:
+  title: Serverless HTTP Relay Proxy
+  description: |
+    A high-quality, serverless HTTP proxy built with Rust and AWS Lambda.
+    This service allows you to relay HTTP requests to any target destination while managing authentication at the proxy layer.
+
+    ### Key Features
+    - **Header-based Routing**: Specify destination and method using custom headers.
+    - **Transparent Relay**: Forwards request bodies and headers (except protected ones) and returns target responses verbatim.
+    - **Secure**: Authentication via a pre-shared secret in the `X-Proxy-Auth` header.
+
+    ### Quick Start
+    To relay a request, send it to the proxy endpoint with the following headers:
+    1. `X-Proxy-Auth`: Your secret key.
+    2. `X-Target-URL`: The full destination URL (e.g., `https://api.example.com/data`).
+    3. `X-Target-Method`: The HTTP method to use (e.g., `GET`, `POST`).
+
+    The proxy will then execute the request on your behalf and return the result.
+  version: 1.0.0
+servers:
+  - url: https://{lambda-id}.lambda-url.{region}.on.aws/
+    description: Your deployed Lambda Function URL
+    variables:
+      lambda-id:
+        default: example-id
+      region:
+        default: us-east-1
+paths:
+  /:
+    summary: Relay Endpoint
+    description: |
+      The main entry point for the proxy. All requests are routed based on headers.
+      The proxy accepts any path, as it is handled by a single Lambda function.
+    parameters:
+      - $ref: '#/components/parameters/X-Proxy-Auth'
+      - $ref: '#/components/parameters/X-Target-URL'
+      - $ref: '#/components/parameters/X-Target-Method'
+    get:
+      summary: Relay GET request
+      responses:
+        $ref: '#/components/responses/ProxyResponse'
+    post:
+      summary: Relay POST request
+      requestBody:
+        $ref: '#/components/requestBodies/RelayBody'
+      responses:
+        $ref: '#/components/responses/ProxyResponse'
+    put:
+      summary: Relay PUT request
+      requestBody:
+        $ref: '#/components/requestBodies/RelayBody'
+      responses:
+        $ref: '#/components/responses/ProxyResponse'
+    patch:
+      summary: Relay PATCH request
+      requestBody:
+        $ref: '#/components/requestBodies/RelayBody'
+      responses:
+        $ref: '#/components/responses/ProxyResponse'
+    delete:
+      summary: Relay DELETE request
+      responses:
+        $ref: '#/components/responses/ProxyResponse'
+    head:
+      summary: Relay HEAD request
+      responses:
+        $ref: '#/components/responses/ProxyResponse'
+
+components:
+  parameters:
+    X-Proxy-Auth:
+      name: X-Proxy-Auth
+      in: header
+      required: true
+      schema:
+        type: string
+      description: |
+        The authentication secret required to use the proxy.
+        Requests without this header or with an incorrect value will receive a `401 Unauthorized` response.
+    X-Target-URL:
+      name: X-Target-URL
+      in: header
+      required: true
+      schema:
+        type: string
+        format: uri
+        example: https://api.github.com/zen
+      description: |
+        The destination URL where the request should be relayed.
+        Must be a full absolute URL including protocol.
+    X-Target-Method:
+      name: X-Target-Method
+      in: header
+      required: true
+      schema:
+        type: string
+        enum: [GET, POST, PUT, DELETE, PATCH, HEAD]
+        example: GET
+      description: |
+        The HTTP method to be used for the outbound request to the target URL.
+
+  requestBodies:
+    RelayBody:
+      description: The body material to be forwarded to the target.
+      content:
+        '*/*':
+          schema:
+            type: string
+            format: binary
+
+  responses:
+    ProxyResponse:
+      description: |
+        Returns the response from the target URL verbatim, including status code, headers, and body.
+        
+        **Implementation Detail**:
+        - Proxy headers (`X-Proxy-Auth`, `X-Target-URL`, `X-Target-Method`, `host`) are stripped before forwarding.
+        - All other incoming headers are forwarded to the target.
+        - If the upstream request fails (e.g., DNS error, timeout), a `502 Bad Gateway` is returned.
+      content:
+        '*/*':
+          schema:
+            type: string
+            format: binary
+      headers:
+        Any:
+          description: All headers returned by the target are forwarded.
+          schema:
+            type: string
+
+    ErrorResponse:
+      description: Error returned by the proxy itself (not the target).
+      content:
+        text/plain:
+          schema:
+            type: string
+            example: "Missing X-Target-URL header"
